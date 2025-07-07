@@ -58,9 +58,10 @@ export default function SignupPage() {
         displayName: values.displayName,
       });
 
-      // The AuthProvider will create the user profile in Firestore
-      
-      router.push('/dashboard');
+      // The AuthProvider will create the user profile in Firestore.
+      // A new user is guaranteed to not be in a group, so we redirect
+      // them directly to the page to join or create one.
+      router.push('/dashboard/join-or-create-group');
     } catch (error: any) {
       console.error(error);
       toast({

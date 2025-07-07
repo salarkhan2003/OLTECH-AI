@@ -30,7 +30,8 @@ import {
   Bell,
   Bot,
   AreaChart,
-  Loader2
+  Loader2,
+  ClipboardCheck,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/components/auth-provider';
@@ -47,13 +48,14 @@ import {
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
+  { href: '/dashboard/projects', label: 'Projects', icon: ClipboardCheck },
   { href: '/dashboard/tasks', label: 'Tasks', icon: ClipboardList },
   { href: '/dashboard/team', label: 'Team', icon: Users },
   { href: '/dashboard/documents', label: 'Documents', icon: Folder },
   { href: '/dashboard/calendar', label: 'Calendar', icon: CalendarDays },
-  { href: '#', label: 'Analytics', icon: AreaChart },
-  { href: '#', label: 'Notifications', icon: Bell },
-  { href: '#', label: 'AI Assistant', icon: Bot },
+  { href: '/dashboard/analytics', label: 'Analytics', icon: AreaChart },
+  { href: '#', label: 'Notifications', icon: Bell, disabled: true },
+  { href: '#', label: 'AI Assistant', icon: Bot, disabled: true },
 ];
 
 function MainSidebar() {
@@ -84,7 +86,7 @@ function MainSidebar() {
                 asChild
                 isActive={isActive(item.href)}
                 tooltip={{ children: item.label }}
-                disabled={item.href === '#'}
+                disabled={item.disabled || item.href === '#'}
               >
                 <Link href={item.href}>
                   <item.icon />
@@ -145,10 +147,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [user, loading, router]);
   
   React.useEffect(() => {
-    if (!loading && user && !userProfile?.groupId) {
+    // Redirect to join/create group only if they are on a page that REQUIRES a group
+    if (!loading && user && !userProfile?.groupId && pathname !== '/dashboard/join-or-create-group') {
       router.push('/dashboard/join-or-create-group');
     }
-  }, [user, userProfile, loading, router]);
+  }, [user, userProfile, loading, router, pathname]);
   
   if (loading || !user) {
     return (

@@ -4,7 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowUpRight, GanttChart, ListTodo, Users, CheckCircle2 } from 'lucide-react';
+import { ArrowUpRight, GanttChartSquare, ListTodo, Users, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { useGroup } from '@/components/group-provider';
 import { useAuth } from '@/components/auth-provider';
@@ -34,7 +34,7 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-            <GanttChart className="h-4 w-4 text-muted-foreground" />
+            <GanttChartSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalTasks}</div>

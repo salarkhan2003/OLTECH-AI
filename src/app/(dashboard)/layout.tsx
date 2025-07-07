@@ -139,6 +139,7 @@ function MainSidebar() {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, userProfile, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   React.useEffect(() => {
     if (!loading && !user) {
@@ -153,7 +154,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, userProfile, loading, router, pathname]);
   
-  if (loading || !user) {
+  if (loading || !user || !userProfile) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -161,9 +162,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // If user is logged in but not in a group, show the join/create page
-  if (!userProfile?.groupId) {
-     return <>{children}</>
+  // If user is logged in but has no group, the useEffect above will redirect them.
+  // We need to render the children in a consistent layout shell.
+  // The join/create page itself doesn't require the GroupProvider, but rendering it
+  // within the provider is harmless and prevents crashes on other pages.
+  if (!userProfile.groupId) {
+    // Only render the join/create page, not the full dashboard layout
+    if (pathname === '/dashboard/join-or-create-group') {
+        return <>{children}</>;
+    }
+    // Otherwise, show a loading spinner while redirecting
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (

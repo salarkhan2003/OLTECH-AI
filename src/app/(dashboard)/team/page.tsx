@@ -1,9 +1,10 @@
+'use client';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MoreHorizontal, UserPlus } from "lucide-react";
+import { MoreHorizontal, UserPlus, Copy } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,30 +13,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useGroup } from "@/components/group-provider";
+import { format } from 'date-fns';
+import { useToast } from "@/hooks/use-toast";
 
-const teamMembers = [
-  { name: 'Alice Johnson', email: 'alice@oltech.ai', role: 'Admin', status: 'Active', avatar: 'https://placehold.co/40x40/png' },
-  { name: 'Bob Williams', email: 'bob@oltech.ai', role: 'Manager', status: 'Active', avatar: 'https://placehold.co/40x40/png' },
-  { name: 'Charlie Brown', email: 'charlie@oltech.ai', role: 'Developer', status: 'Active', avatar: 'https://placehold.co/40x40/png' },
-  { name: 'David Miller', email: 'david@oltech.ai', role: 'Developer', status: 'Invited', avatar: 'https://placehold.co/40x40/png' },
-  { name: 'Eve Davis', email: 'eve@oltech.ai', role: 'Viewer', status: 'Active', avatar: 'https://placehold.co/40x40/png' },
-  { name: 'Frank Garcia', email: 'frank@oltech.ai', role: 'Developer', status: 'Inactive', avatar: 'https://placehold.co/40x40/png' },
-];
-
-const roleVariant: { [key: string]: "default" | "secondary" | "outline" } = {
-  'Admin': 'default',
-  'Manager': 'secondary',
-  'Developer': 'outline',
-  'Viewer': 'outline',
-};
-
-const statusVariant: { [key: string]: string } = {
-  'Active': 'bg-green-500/20 text-green-700 dark:bg-green-500/10 dark:text-green-400 border-green-500/20',
-  'Invited': 'bg-blue-500/20 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border-blue-500/20',
-  'Inactive': 'bg-gray-500/20 text-gray-700 dark:bg-gray-500/10 dark:text-gray-400 border-gray-500/20',
+const roleVariant: { [key: string]: "default" | "secondary" | "destructive" | "outline" } = {
+  'admin': 'default',
+  'member': 'secondary',
 };
 
 export default function TeamPage() {
+  const { group, members } = useGroup();
+  const { toast } = useToast();
+
+  const copyJoinCode = () => {
+    if (!group?.joinCode) return;
+    navigator.clipboard.writeText(group.joinCode);
+    toast({
+      title: "Copied to clipboard!",
+      description: `Join code ${group.joinCode} is ready to be shared.`,
+    });
+  }
+
   return (
     <main className="p-4 sm:p-6 lg:p-8">
       <div className="mb-8 flex items-center justify-between">
@@ -43,10 +42,19 @@ export default function TeamPage() {
           <h1 className="text-3xl font-bold tracking-tight">Team Members</h1>
           <p className="text-muted-foreground">Manage your team and their roles.</p>
         </div>
-        <Button>
-          <UserPlus className="mr-2 h-4 w-4" />
-          Invite Member
-        </Button>
+        <div className="flex items-center gap-2">
+            <p className="text-sm text-muted-foreground hidden sm:block">
+                Join Code: <span className="font-semibold text-foreground">{group?.joinCode}</span>
+            </p>
+            <Button variant="outline" size="sm" onClick={copyJoinCode}>
+                <Copy className="mr-2 h-4 w-4" />
+                Copy Code
+            </Button>
+            <Button>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Invite Member
+            </Button>
+        </div>
       </div>
 
       <Card>
@@ -54,32 +62,36 @@ export default function TeamPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Member</TableHead>
+                <TableHead className="w-[40%]">Member</TableHead>
+                <TableHead>Title</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Joined</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {teamMembers.map((member) => (
-                <TableRow key={member.email}>
+              {members.map((member) => (
+                <TableRow key={member.uid}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar>
-                        <AvatarImage src={member.avatar} alt={member.name} />
-                        <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                        <AvatarImage src={member.photoURL ?? ''} alt={member.displayName ?? ''} />
+                        <AvatarFallback>{member.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">{member.name}</p>
+                        <p className="font-medium">{member.displayName}</p>
                         <p className="text-sm text-muted-foreground">{member.email}</p>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <Badge variant={roleVariant[member.role] || 'outline'}>{member.role}</Badge>
+                  <TableCell className="text-muted-foreground">
+                    {member.title || 'Not set'}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={statusVariant[member.status]}>{member.status}</Badge>
+                    <Badge variant={roleVariant[member.role] || 'outline'} className="capitalize">{member.role}</Badge>
+                  </TableCell>
+                   <TableCell className="text-muted-foreground">
+                     {member.joinedAt ? format(member.joinedAt.toDate(), 'MMM d, yyyy') : 'N/A'}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -90,8 +102,8 @@ export default function TeamPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>Edit Role</DropdownMenuItem>
-                        <DropdownMenuItem>View Activity</DropdownMenuItem>
+                        <DropdownMenuItem>View Profile</DropdownMenuItem>
+                        <DropdownMenuItem>Change Role</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-destructive">Remove from Team</DropdownMenuItem>
                       </DropdownMenuContent>

@@ -1,10 +1,15 @@
+'use client';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AppIcon } from '@/app/icon';
 import { ArrowRight, Bot, FolderSync, GanttChartSquare } from 'lucide-react';
+import { useAuth } from '@/components/auth-provider';
 
 export default function LandingPage() {
+  const { user, loading } = useAuth();
+  const getStartedLink = user ? '/dashboard' : '/login';
+
   return (
     <div className="flex flex-col min-h-screen">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
@@ -13,7 +18,7 @@ export default function LandingPage() {
           <h1 className="text-xl font-bold tracking-tight">OLTECH AI: Streamline</h1>
         </div>
         <Button asChild>
-          <Link href="/dashboard">Get Started</Link>
+          <Link href={getStartedLink}>Get Started</Link>
         </Button>
       </header>
       <main className="flex-1">
@@ -28,7 +33,7 @@ export default function LandingPage() {
               OLTECH AI: Streamline is the all-in-one platform that brings your projects, tasks, and team together. Powered by AI, built for startups.
             </p>
             <Button size="lg" className="mt-8" asChild>
-              <Link href="/dashboard">
+              <Link href={getStartedLink}>
                 Go to Dashboard <ArrowRight className="ml-2" />
               </Link>
             </Button>

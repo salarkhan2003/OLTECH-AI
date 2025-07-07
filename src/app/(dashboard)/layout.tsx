@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   SidebarProvider,
   Sidebar,
@@ -14,37 +14,58 @@ import {
   SidebarFooter,
   SidebarTrigger,
   SidebarInset,
-  useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { AppIcon } from '@/app/icon';
 import {
   LayoutGrid,
   ClipboardList,
-  GanttChart,
   Folder,
-  FileText,
   Users,
   Settings,
   ChevronRight,
+  User,
+  LogOut,
+  CalendarDays,
+  Bell,
+  Bot,
+  AreaChart,
+  Loader2
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuth } from '@/components/auth-provider';
+import { GroupProvider } from '@/components/group-provider';
+import { auth } from '@/lib/firebase';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
-  { href: '/dashboard/projects', label: 'Projects', icon: GanttChart },
   { href: '/dashboard/tasks', label: 'Tasks', icon: ClipboardList },
-  { href: '/dashboard/documents', label: 'Documents', icon: Folder },
-  { href: '/dashboard/reports', label: 'Reports', icon: FileText },
   { href: '/dashboard/team', label: 'Team', icon: Users },
+  { href: '/dashboard/documents', label: 'Documents', icon: Folder },
+  { href: '/dashboard/calendar', label: 'Calendar', icon: CalendarDays },
+  { href: '#', label: 'Analytics', icon: AreaChart },
+  { href: '#', label: 'Notifications', icon: Bell },
+  { href: '#', label: 'AI Assistant', icon: Bot },
 ];
 
 function MainSidebar() {
   const pathname = usePathname();
-  const { state, setOpen } = useSidebar();
+  const { userProfile } = useAuth();
 
   const isActive = (href: string) => {
-    return href === '/dashboard' ? pathname === href : pathname.startsWith(href);
+    return href !== '#' && (href === '/dashboard' ? pathname === href : pathname.startsWith(href));
+  };
+
+  const handleSignOut = () => {
+    auth.signOut();
   };
 
   return (
@@ -63,8 +84,9 @@ function MainSidebar() {
                 asChild
                 isActive={isActive(item.href)}
                 tooltip={{ children: item.label }}
+                disabled={item.href === '#'}
               >
-                <Link href={item.href} onClick={() => state === 'expanded' && setOpen(false)}>
+                <Link href={item.href}>
                   <item.icon />
                   <span>{item.label}</span>
                 </Link>
@@ -74,42 +96,87 @@ function MainSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-2">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton tooltip={{ children: 'Settings' }}>
-              <Settings />
-              <span>Settings</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <SidebarMenuButton>
-              <Avatar className="h-7 w-7">
-                <AvatarImage src="https://placehold.co/40x40.png" alt="User" />
-                <AvatarFallback>U</AvatarFallback>
-              </Avatar>
-              <span>User Profile</span>
-              <ChevronRight className="ml-auto" />
+                <Avatar className="h-7 w-7">
+                  <AvatarImage src={userProfile?.photoURL ?? undefined} alt={userProfile?.displayName ?? ''} />
+                  <AvatarFallback>{userProfile?.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <span>{userProfile?.displayName}</span>
+                <ChevronRight className="ml-auto" />
             </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="start" className="w-56">
+            <DropdownMenuLabel>{userProfile?.email}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/profile">
+                <User className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="#">
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SidebarFooter>
     </Sidebar>
   );
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { user, userProfile, loading } = useAuth();
+  const router = useRouter();
+
+  React.useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+  
+  React.useEffect(() => {
+    if (!loading && user && !userProfile?.groupId) {
+      router.push('/dashboard/join-or-create-group');
+    }
+  }, [user, userProfile, loading, router]);
+  
+  if (loading || !user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // If user is logged in but not in a group, show the join/create page
+  if (!userProfile?.groupId) {
+     return <>{children}</>
+  }
+
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen">
-        <MainSidebar />
-        <SidebarInset className="bg-secondary/30 dark:bg-background">
-          <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:justify-end">
-            <SidebarTrigger className="md:hidden" />
-            <Button>+ New Task</Button>
-          </header>
-          {children}
-        </SidebarInset>
-      </div>
+      <GroupProvider userProfile={userProfile}>
+        <div className="flex min-h-screen">
+          <MainSidebar />
+          <SidebarInset className="bg-secondary/30 dark:bg-background">
+            <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:justify-end">
+              <SidebarTrigger className="md:hidden" />
+              {/* This button could be context-aware later */}
+            </header>
+            {children}
+          </SidebarInset>
+        </div>
+      </GroupProvider>
     </SidebarProvider>
   );
 }

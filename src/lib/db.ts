@@ -124,6 +124,19 @@ export const createProject = async (groupId: string, projectData: Omit<Project, 
     });
 };
 
+export const updateProject = async (groupId: string, projectId: string, data: Partial<Omit<Project, 'id' | 'createdAt' | 'createdBy'>>) => {
+    const projectRef = doc(db, 'groups', groupId, 'projects', projectId);
+    await updateDoc(projectRef, data);
+};
+
+export const deleteProject = async (groupId: string, projectId: string) => {
+    const projectRef = doc(db, 'groups', groupId, 'projects', projectId);
+    await deleteDoc(projectRef);
+    // Note: This simple delete does not remove associated tasks or documents.
+    // For a production app, a Firebase Function would be needed to handle this cascade.
+};
+
+
 // Task Functions
 export const createTask = async (groupId: string, taskData: Omit<Task, 'id' | 'createdAt'>) => {
     const taskId = doc(collection(db, 'groups', groupId, 'tasks')).id;
@@ -198,4 +211,24 @@ export const deleteDocument = async (groupId: string, document: Document) => {
 
     const docRef = doc(db, 'groups', groupId, 'documents', document.id);
     await deleteDoc(docRef);
+};
+
+// Team Management Functions
+export const updateMemberRole = async (groupId: string, memberId: string, role: 'admin' | 'member') => {
+    const memberRef = doc(db, 'groups', groupId, 'members', memberId);
+    await updateDoc(memberRef, { role });
+};
+
+export const removeMemberFromGroup = async (groupId: string, memberId: string) => {
+    const batch = writeBatch(db);
+    
+    // 1. Remove the user from the group's members subcollection
+    const memberRef = doc(db, 'groups', groupId, 'members', memberId);
+    batch.delete(memberRef);
+
+    // 2. Clear the groupId from the user's main profile
+    const userRef = doc(db, 'users', memberId);
+    batch.update(userRef, { groupId: null });
+
+    await batch.commit();
 };

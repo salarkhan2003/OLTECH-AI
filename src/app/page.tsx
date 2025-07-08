@@ -34,7 +34,7 @@ export default function LandingPage() {
             </p>
             <Button size="lg" className="mt-8" asChild>
               <Link href={getStartedLink}>
-                Go to Dashboard <ArrowRight className="ml-2" />
+                Enter the AI World <ArrowRight className="ml-2" />
               </Link>
             </Button>
           </div>

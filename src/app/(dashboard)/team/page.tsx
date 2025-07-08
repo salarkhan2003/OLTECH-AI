@@ -6,14 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MoreHorizontal, UserPlus, Copy, Trash2, ShieldCheck } from "lucide-react";
+import { MoreHorizontal, UserPlus, Trash2, ShieldCheck } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
@@ -33,6 +32,7 @@ import type { GroupMember } from '@/lib/types';
 import { removeMemberFromGroup } from '@/lib/db';
 import { ChangeRoleDialog } from '@/components/dashboard/change-role-dialog';
 import { InviteMemberDialog } from '@/components/dashboard/invite-member-dialog';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const roleVariant: { [key: string]: "default" | "secondary" | "destructive" | "outline" } = {
   'admin': 'default',
@@ -138,6 +138,8 @@ export default function TeamPage() {
                 const admins = members.filter(m => m.role === 'admin');
                 const isLastAdmin = admins.length === 1 && admins[0].uid === member.uid;
 
+                const actionButtonDisabled = !isCurrentUserAdmin || isSelf;
+
                 return (
                   <TableRow key={member.uid}>
                     <TableCell>
@@ -165,25 +167,41 @@ export default function TeamPage() {
                        {member.joinedAt ? format(member.joinedAt.toDate(), 'MMM d, yyyy') : 'N/A'}
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" disabled={!isCurrentUserAdmin || isSelf}>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem disabled>View Profile</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleChangeRoleClick(member)} disabled={isLastAdmin}>
-                            <ShieldCheck className="mr-2 h-4 w-4" />
-                            Change Role
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive" onClick={() => setMemberToRemove(member)} disabled={isLastAdmin}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Remove from Team
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span tabIndex={actionButtonDisabled ? 0 : -1}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={actionButtonDisabled}>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleChangeRoleClick(member)} disabled={isLastAdmin}>
+                                  <ShieldCheck className="mr-2 h-4 w-4" />
+                                  <span>Change Role</span>
+                                  {isLastAdmin && <Badge variant="outline" className="ml-2">Last Admin</Badge>}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-destructive" onClick={() => setMemberToRemove(member)} disabled={isLastAdmin}>
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  <span>Remove from Team</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </span>
+                        </TooltipTrigger>
+                        {isSelf && (
+                          <TooltipContent>
+                            <p>You cannot perform actions on yourself.</p>
+                          </TooltipContent>
+                        )}
+                        {!isCurrentUserAdmin && (
+                           <TooltipContent>
+                            <p>Only admins can perform this action.</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 );

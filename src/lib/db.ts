@@ -43,29 +43,41 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 };
 
 export const updateUserProfile = async (userProfile: UserProfile, data: Partial<UserProfile>) => {
+    if (!userProfile?.uid) {
+        throw new Error("Cannot update profile for a user without a UID.");
+    }
     const batch = writeBatch(db);
 
-    // 1. Update the main user profile document
+    // 1. Update the main user profile document in /users/{uid}
     const userRef = doc(db, 'users', userProfile.uid);
     batch.update(userRef, data);
 
-    // 2. If the user is in a group, update their denormalized data in the members subcollection
+    // 2. If the user is in a group, also update their denormalized data in /groups/{groupId}/members/{uid}
     if (userProfile.groupId) {
         const memberRef = doc(db, 'groups', userProfile.groupId, 'members', userProfile.uid);
         
-        // Create a specific object for the member data to avoid writing fields that don't exist on GroupMember
-        const memberData: Partial<GroupMember> = {};
-        if (data.displayName !== undefined) memberData.displayName = data.displayName;
-        if (data.photoURL !== undefined) memberData.photoURL = data.photoURL;
-        if (data.title !== undefined) memberData.title = data.title;
-        if (data.department !== undefined) memberData.department = data.department;
+        // Create a specific object with only the fields relevant to GroupMember
+        const memberData: { [key: string]: any } = {};
+        if (data.displayName !== undefined) {
+            memberData.displayName = data.displayName;
+        }
+        if (data.photoURL !== undefined) {
+            memberData.photoURL = data.photoURL;
+        }
+        if (data.title !== undefined) {
+            memberData.title = data.title;
+        }
+        if (data.department !== undefined) {
+            memberData.department = data.department;
+        }
 
-        // Only add the update to the batch if there are fields to update
+        // Only add the update to the batch if there's something to update
         if (Object.keys(memberData).length > 0) {
             batch.update(memberRef, memberData);
         }
     }
 
+    // Commit all batched writes
     await batch.commit();
 };
 
@@ -92,9 +104,9 @@ export const createGroup = async (groupName: string, user: UserProfile): Promise
     uid: user.uid,
     role: 'admin',
     joinedAt: serverTimestamp(),
-    displayName: user.displayName,
-    photoURL: user.photoURL,
-    email: user.email,
+    displayName: user.displayName || '',
+    photoURL: user.photoURL || '',
+    email: user.email || '',
     title: user.title || '',
     department: user.department || '',
   });
@@ -125,9 +137,9 @@ export const joinGroup = async (joinCode: string, user: UserProfile): Promise<Gr
     uid: user.uid,
     role: 'member',
     joinedAt: serverTimestamp(),
-    displayName: user.displayName,
-    photoURL: user.photoURL,
-    email: user.email,
+    displayName: user.displayName || '',
+    photoURL: user.photoURL || '',
+    email: user.email || '',
     title: user.title || '',
     department: user.department || '',
   });

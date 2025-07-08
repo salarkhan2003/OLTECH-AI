@@ -21,8 +21,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { updateProfile } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'Display name must be at least 2 characters.'),
@@ -56,10 +54,6 @@ export function UserProfileForm({ userProfile }: { userProfile: UserProfile }) {
   async function onSubmit(data: ProfileFormValues) {
     setIsLoading(true);
     try {
-      if (auth.currentUser && data.displayName !== auth.currentUser.displayName) {
-        await updateProfile(auth.currentUser, { displayName: data.displayName });
-      }
-
       await updateUserProfile(userProfile, data);
 
       toast({

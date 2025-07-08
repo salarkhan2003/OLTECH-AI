@@ -1,4 +1,3 @@
-
 import {
   collection,
   doc,
@@ -12,11 +11,12 @@ import {
   updateDoc,
   deleteDoc,
 } from 'firebase/firestore';
-import { db, storage } from './firebase';
+import { db, storage, auth } from './firebase';
 import type { UserProfile, Group, Task, Project, Document, GroupMember } from './types';
 import { customAlphabet } from 'nanoid';
 import type { User } from 'firebase/auth';
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, uploadBytesResumable } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
+import { updateProfile } from 'firebase/auth';
 
 const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 6);
 
@@ -47,13 +47,18 @@ export const updateUserProfile = async (userProfile: UserProfile, data: Partial<
     if (!userProfile?.uid) {
         throw new Error("Cannot update profile for a user without a UID.");
     }
-    const batch = writeBatch(db);
+    
+    // If displayName is being updated, update Firebase Auth profile as well
+    if (auth.currentUser && data.displayName && data.displayName !== auth.currentUser.displayName) {
+        await updateProfile(auth.currentUser, { displayName: data.displayName });
+    }
 
-    // 1. Update the main user profile document in /users/{uid}
+    const batch = writeBatch(db);
+    
     const userRef = doc(db, 'users', userProfile.uid);
     batch.update(userRef, data);
 
-    // 2. If the user is in a group, also update their denormalized data in /groups/{groupId}/members/{uid}
+    // If the user is in a group, also update their denormalized data in /groups/{groupId}/members/{uid}
     if (userProfile.groupId) {
         const memberRef = doc(db, 'groups', userProfile.groupId, 'members', userProfile.uid);
         
@@ -65,13 +70,11 @@ export const updateUserProfile = async (userProfile: UserProfile, data: Partial<
         if (data.title !== undefined) memberData.title = data.title;
         if (data.department !== undefined) memberData.department = data.department;
 
-        // Only add the update to the batch if there's something to update
         if (Object.keys(memberData).length > 0) {
             batch.update(memberRef, memberData);
         }
     }
 
-    // Commit all batched writes
     await batch.commit();
 };
 
@@ -164,8 +167,6 @@ export const updateProject = async (groupId: string, projectId: string, data: Pa
 export const deleteProject = async (groupId: string, projectId: string) => {
     const projectRef = doc(db, 'groups', groupId, 'projects', projectId);
     await deleteDoc(projectRef);
-    // Note: This simple delete does not remove associated tasks or documents.
-    // For a production app, a Firebase Function would be needed to handle this cascade.
 };
 
 
@@ -254,11 +255,9 @@ export const updateMemberRole = async (groupId: string, memberId: string, role: 
 export const removeMemberFromGroup = async (groupId: string, memberId: string) => {
     const batch = writeBatch(db);
     
-    // 1. Remove the user from the group's members subcollection
     const memberRef = doc(db, 'groups', groupId, 'members', memberId);
     batch.delete(memberRef);
 
-    // 2. Clear the groupId from the user's main profile
     const userRef = doc(db, 'users', memberId);
     batch.update(userRef, { groupId: null });
 

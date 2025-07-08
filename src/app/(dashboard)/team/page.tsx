@@ -1,4 +1,3 @@
-
 'use client';
 import * as React from 'react';
 import { Badge } from "@/components/ui/badge";
@@ -170,7 +169,6 @@ export default function TeamPage() {
                       <TableCell className="text-right">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            {/* This span helps the tooltip appear even when the button is disabled */}
                             <span tabIndex={actionButtonDisabled ? 0 : -1}>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>

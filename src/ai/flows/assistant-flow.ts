@@ -39,6 +39,10 @@ const prompt = ai.definePrompt({
   {{{message}}}
   
   ANSWER:`,
+  config: {
+    // Lower temperature for more factual, less creative answers
+    temperature: 0.2,
+  },
 });
 
 const assistantFlow = ai.defineFlow(
@@ -48,13 +52,7 @@ const assistantFlow = ai.defineFlow(
     outputSchema: z.string(),
   },
   async input => {
-    const {text} = await ai.generate({
-      prompt: prompt.render(input),
-      config: {
-        // Lower temperature for more factual, less creative answers
-        temperature: 0.2,
-      },
-    });
-    return text;
+    const response = await prompt(input);
+    return response.text;
   }
 );

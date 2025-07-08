@@ -179,7 +179,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         } else if (pendingJoinCode && userProfile.groupId) {
             // User is already in a group, just remove the code.
             localStorage.removeItem('pendingJoinCode');
-        } else if (!userProfile.groupId && !pathname.startsWith('/dashboard/join-or-create-group')) {
+        } else if (!userProfile.groupId && !pathname.startsWith('/join')) {
             router.push('/dashboard/join-or-create-group');
         }
     };
@@ -198,6 +198,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!userProfile?.groupId) {
     if (pathname.startsWith('/dashboard/join-or-create-group')) {
         return <>{children}</>;
+    }
+    // This check prevents an infinite redirect loop if join-or-create is the intended page.
+    if (!pathname.startsWith('/join')) {
+        router.push('/dashboard/join-or-create-group');
     }
     return (
       <div className="flex h-screen w-full items-center justify-center">

@@ -81,7 +81,7 @@ function MainSidebar() {
       <SidebarContent className="p-2">
         <SidebarMenu>
           {menuItems.map((item) => (
-            <SidebarMenuItem key={item.href}>
+            <SidebarMenuItem key={item.label}>
               <SidebarMenuButton
                 asChild
                 isActive={isActive(item.href)}

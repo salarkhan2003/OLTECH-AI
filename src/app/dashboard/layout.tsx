@@ -54,8 +54,8 @@ const menuItems = [
   { href: '/dashboard/documents', label: 'Documents', icon: Folder },
   { href: '/dashboard/calendar', label: 'Calendar', icon: CalendarDays },
   { href: '/dashboard/analytics', label: 'Analytics', icon: AreaChart },
-  { href: '#', label: 'Notifications', icon: Bell, disabled: true },
-  { href: '#', label: 'AI Assistant', icon: Bot, disabled: true },
+  { href: '/dashboard/notifications', label: 'Notifications', icon: Bell },
+  { href: '/dashboard/ai-assistant', label: 'AI Assistant', icon: Bot },
 ];
 
 function MainSidebar() {
@@ -86,7 +86,6 @@ function MainSidebar() {
                 asChild
                 isActive={isActive(item.href)}
                 tooltip={{ children: item.label }}
-                disabled={item.disabled || item.href === '#'}
               >
                 <Link href={item.href}>
                   <item.icon />
@@ -119,7 +118,7 @@ function MainSidebar() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="#">
+              <Link href="/dashboard/settings">
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </Link>

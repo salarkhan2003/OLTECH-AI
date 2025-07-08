@@ -211,27 +211,32 @@ export const uploadDocument = (
         reject(error);
       },
       async () => {
-        const url = await getDownloadURL(uploadTask.snapshot.ref);
-        const docRef = doc(db, 'groups', groupId, 'documents', docId);
+        try {
+            const url = await getDownloadURL(uploadTask.snapshot.ref);
+            const docRef = doc(db, 'groups', groupId, 'documents', docId);
 
-        const newDocument: Document = {
-            id: docId,
-            name: file.name,
-            url,
-            path: storagePath,
-            fileType: file.type || 'unknown',
-            size: file.size,
-            uploadedAt: serverTimestamp(),
-            uploadedBy: user.uid,
-            uploaderName: user.displayName,
-            uploaderPhotoURL: user.photoURL,
-            description: description || '',
-            projectId: projectId || null,
-            taskId: taskId || null,
-        };
+            const newDocument: Document = {
+                id: docId,
+                name: file.name,
+                url,
+                path: storagePath,
+                fileType: file.type || 'unknown',
+                size: file.size,
+                uploadedAt: serverTimestamp(),
+                uploadedBy: user.uid,
+                uploaderName: user.displayName,
+                uploaderPhotoURL: user.photoURL,
+                description: description || '',
+                projectId: projectId || null,
+                taskId: taskId || null,
+            };
 
-        await setDoc(docRef, newDocument);
-        resolve(newDocument);
+            await setDoc(docRef, newDocument);
+            resolve(newDocument);
+        } catch (error) {
+            console.error("Error in upload completion callback:", error);
+            reject(error);
+        }
       }
     );
   });

@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -19,7 +20,6 @@ import { Button } from '@/components/ui/button';
 import { AppIcon } from '@/app/icon';
 import {
   LayoutGrid,
-  ClipboardList,
   Folder,
   Users,
   Settings,
@@ -31,7 +31,9 @@ import {
   Bot,
   AreaChart,
   Loader2,
-  ClipboardCheck,
+  Briefcase,
+  CheckSquare,
+  Info,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/components/auth-provider';
@@ -48,14 +50,14 @@ import {
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
-  { href: '/dashboard/projects', label: 'Projects', icon: ClipboardCheck },
-  { href: '/dashboard/tasks', label: 'Tasks', icon: ClipboardList },
+  { href: '/dashboard/projects', label: 'Projects', icon: Briefcase },
+  { href: '/dashboard/tasks', label: 'Tasks', icon: CheckSquare },
   { href: '/dashboard/team', label: 'Team', icon: Users },
   { href: '/dashboard/documents', label: 'Documents', icon: Folder },
   { href: '/dashboard/calendar', label: 'Calendar', icon: CalendarDays },
   { href: '/dashboard/analytics', label: 'Analytics', icon: AreaChart },
-  { href: '#', label: 'Notifications', icon: Bell, disabled: true },
-  { href: '#', label: 'AI Assistant', icon: Bot, disabled: true },
+  { href: '/dashboard/notifications', label: 'Notifications', icon: Bell },
+  { href: '/dashboard/ai-assistant', label: 'AI Assistant', icon: Bot },
 ];
 
 function MainSidebar() {
@@ -81,12 +83,11 @@ function MainSidebar() {
       <SidebarContent className="p-2">
         <SidebarMenu>
           {menuItems.map((item) => (
-            <SidebarMenuItem key={item.href}>
+            <SidebarMenuItem key={item.label}>
               <SidebarMenuButton
                 asChild
                 isActive={isActive(item.href)}
                 tooltip={{ children: item.label }}
-                disabled={item.disabled || item.href === '#'}
               >
                 <Link href={item.href}>
                   <item.icon />
@@ -119,9 +120,15 @@ function MainSidebar() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="#">
+              <Link href="/dashboard/settings">
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/about">
+                <Info className="mr-2 h-4 w-4" />
+                <span>About</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -148,13 +155,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [user, loading, router]);
   
   React.useEffect(() => {
-    // Redirect to join/create group only if they are on a page that REQUIRES a group
-    if (!loading && user && !userProfile?.groupId && pathname !== '/dashboard/join-or-create-group') {
-      router.push('/dashboard/join-or-create-group');
+    if (!loading && user && !userProfile?.groupId && !pathname.startsWith('/dashboard/join-or-create-group')) {
+        router.push('/dashboard/join-or-create-group');
     }
   }, [user, userProfile, loading, router, pathname]);
   
-  if (loading || !user || !userProfile) {
+  if (loading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -162,23 +168,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // If user is logged in but has no group, the useEffect above will redirect them.
-  // We need to render the children in a consistent layout shell.
-  // The join/create page itself doesn't require the GroupProvider, but rendering it
-  // within the provider is harmless and prevents crashes on other pages.
-  if (!userProfile.groupId) {
-    // Only render the join/create page, not the full dashboard layout
-    if (pathname === '/dashboard/join-or-create-group') {
+  // If user is logged in but has no group, show the join/create page or redirect.
+  if (!userProfile?.groupId) {
+    if (pathname.startsWith('/dashboard/join-or-create-group')) {
         return <>{children}</>;
     }
-    // Otherwise, show a loading spinner while redirecting
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
-
+  
   return (
     <SidebarProvider>
       <GroupProvider userProfile={userProfile}>

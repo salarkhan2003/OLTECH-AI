@@ -92,12 +92,20 @@ export default function AnalyticsPage() {
             <CardDescription>Number of "To Do" and "In Progress" tasks assigned to each member.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={{}} className="h-[250px] w-full">
+            <ChartContainer
+              config={{
+                openTasks: {
+                  label: "Open Tasks",
+                  color: "hsl(var(--primary))",
+                },
+              }}
+              className="h-[250px] w-full"
+            >
               <BarChart data={tasksPerMember} accessibilityLayer>
                 <CartesianGrid vertical={false} />
                 <XAxis dataKey="name" tickLine={false} tickMargin={10} axisLine={false} />
                 <RechartsTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-                <Bar dataKey="openTasks" fill="var(--color-tasks)" radius={8} />
+                <Bar dataKey="openTasks" fill="var(--color-openTasks)" radius={8} />
               </BarChart>
             </ChartContainer>
           </CardContent>
@@ -111,12 +119,20 @@ export default function AnalyticsPage() {
                 <CardDescription>Tasks completed over the last 30 days.</CardDescription>
             </CardHeader>
             <CardContent>
-                <ChartContainer config={{}} className="h-[300px] w-full">
+                <ChartContainer
+                  config={{
+                    count: {
+                      label: "Tasks Completed",
+                      color: "hsl(var(--accent))",
+                    },
+                  }}
+                  className="h-[300px] w-full"
+                >
                   <AreaChart data={completionTrend} margin={{ left: 12, right: 12 }}>
                     <CartesianGrid vertical={false} />
                     <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} tickCount={8} />
                     <RechartsTooltip content={<ChartTooltipContent indicator="dot" />} />
-                    <Area dataKey="count" type="natural" fill="var(--color-area)" fillOpacity={0.4} stroke="var(--color-area)" stackId="a" />
+                    <Area dataKey="count" type="natural" fill="var(--color-count)" fillOpacity={0.4} stroke="var(--color-count)" stackId="a" />
                   </AreaChart>
                 </ChartContainer>
             </CardContent>

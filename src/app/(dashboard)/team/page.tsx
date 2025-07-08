@@ -32,7 +32,7 @@ import type { GroupMember } from '@/lib/types';
 import { removeMemberFromGroup } from '@/lib/db';
 import { ChangeRoleDialog } from '@/components/dashboard/change-role-dialog';
 import { InviteMemberDialog } from '@/components/dashboard/invite-member-dialog';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const roleVariant: { [key: string]: "default" | "secondary" | "destructive" | "outline" } = {
   'admin': 'default',
@@ -121,93 +121,90 @@ export default function TeamPage() {
 
       <Card>
         <CardContent className="pt-6">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[35%]">Member</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {members.map((member) => {
-                const isSelf = member.uid === userProfile?.uid;
-                const admins = members.filter(m => m.role === 'admin');
-                const isLastAdmin = admins.length === 1 && admins[0].uid === member.uid;
+          <TooltipProvider>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[35%]">Member</TableHead>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Joined</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {members.map((member) => {
+                  const isSelf = member.uid === userProfile?.uid;
+                  const admins = members.filter(m => m.role === 'admin');
+                  const isLastAdmin = isCurrentUserAdmin && admins.length === 1 && admins[0].uid === member.uid;
 
-                const actionButtonDisabled = !isCurrentUserAdmin || isSelf;
+                  const actionButtonDisabled = !isCurrentUserAdmin || isSelf;
 
-                return (
-                  <TableRow key={member.uid}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={member.photoURL ?? ''} alt={member.displayName ?? ''} />
-                          <AvatarFallback>{member.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{member.displayName}</p>
-                          <p className="text-sm text-muted-foreground">{member.email}</p>
+                  return (
+                    <TableRow key={member.uid}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarImage src={member.photoURL ?? ''} alt={member.displayName ?? ''} />
+                            <AvatarFallback>{member.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{member.displayName}</p>
+                            <p className="text-sm text-muted-foreground">{member.email}</p>
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {member.title || 'Not set'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {member.department || 'Not set'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={roleVariant[member.role] || 'outline'} className="capitalize">{member.role}</Badge>
-                    </TableCell>
-                     <TableCell className="text-muted-foreground">
-                       {member.joinedAt ? format(member.joinedAt.toDate(), 'MMM d, yyyy') : 'N/A'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span tabIndex={actionButtonDisabled ? 0 : -1}>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={actionButtonDisabled}>
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleChangeRoleClick(member)} disabled={isLastAdmin}>
-                                  <ShieldCheck className="mr-2 h-4 w-4" />
-                                  <span>Change Role</span>
-                                  {isLastAdmin && <Badge variant="outline" className="ml-2">Last Admin</Badge>}
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-destructive" onClick={() => setMemberToRemove(member)} disabled={isLastAdmin}>
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  <span>Remove from Team</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </span>
-                        </TooltipTrigger>
-                        {isSelf && (
-                          <TooltipContent>
-                            <p>You cannot perform actions on yourself.</p>
-                          </TooltipContent>
-                        )}
-                        {!isCurrentUserAdmin && (
-                           <TooltipContent>
-                            <p>Only admins can perform this action.</p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {member.title || 'Not set'}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {member.department || 'Not set'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={roleVariant[member.role] || 'outline'} className="capitalize">{member.role}</Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {member.joinedAt ? format(member.joinedAt.toDate(), 'MMM d, yyyy') : 'N/A'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            {/* This span helps the tooltip appear even when the button is disabled */}
+                            <span tabIndex={actionButtonDisabled ? 0 : -1}>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" disabled={actionButtonDisabled}>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleChangeRoleClick(member)} disabled={isLastAdmin}>
+                                    <ShieldCheck className="mr-2 h-4 w-4" />
+                                    <span>Change Role</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="text-destructive" onClick={() => setMemberToRemove(member)} disabled={isLastAdmin}>
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <span>Remove from Team</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </span>
+                          </TooltipTrigger>
+                          {actionButtonDisabled && (
+                            <TooltipContent>
+                              <p>{isSelf ? 'You cannot perform actions on yourself.' : 'Only admins can perform this action.'}</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TooltipProvider>
         </CardContent>
       </Card>
     </main>

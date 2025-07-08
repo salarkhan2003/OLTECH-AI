@@ -56,20 +56,13 @@ export const updateUserProfile = async (userProfile: UserProfile, data: Partial<
     if (userProfile.groupId) {
         const memberRef = doc(db, 'groups', userProfile.groupId, 'members', userProfile.uid);
         
-        // Create a specific object with only the fields relevant to GroupMember
         const memberData: { [key: string]: any } = {};
-        if (data.displayName !== undefined) {
-            memberData.displayName = data.displayName;
-        }
-        if (data.photoURL !== undefined) {
-            memberData.photoURL = data.photoURL;
-        }
-        if (data.title !== undefined) {
-            memberData.title = data.title;
-        }
-        if (data.department !== undefined) {
-            memberData.department = data.department;
-        }
+        
+        // Map all potential fields from UserProfile to GroupMember
+        if (data.displayName !== undefined) memberData.displayName = data.displayName;
+        if (data.photoURL !== undefined) memberData.photoURL = data.photoURL;
+        if (data.title !== undefined) memberData.title = data.title;
+        if (data.department !== undefined) memberData.department = data.department;
 
         // Only add the update to the batch if there's something to update
         if (Object.keys(memberData).length > 0) {

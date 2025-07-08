@@ -56,6 +56,7 @@ export const updateUserProfile = async (userProfile: UserProfile, data: Partial<
         // Create a specific object for the member data to avoid writing fields that don't exist on GroupMember
         const memberData: Partial<GroupMember> = {};
         if (data.displayName !== undefined) memberData.displayName = data.displayName;
+        if (data.photoURL !== undefined) memberData.photoURL = data.photoURL;
         if (data.title !== undefined) memberData.title = data.title;
         if (data.department !== undefined) memberData.department = data.department;
 

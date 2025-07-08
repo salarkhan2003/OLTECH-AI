@@ -20,13 +20,13 @@ interface Message {
 const suggestedPrompts = [
     "Do I have any open tasks?",
     "Summarize my high-priority tasks.",
+    "Which projects am I working on?",
     "Who is on my team?",
-    "Which tasks are due this week?",
 ];
 
 export default function AIAssistantPage() {
   const { userProfile } = useAuth();
-  const { tasks, members } = useGroup();
+  const { tasks, members, projects } = useGroup();
 
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [input, setInput] = React.useState('');
@@ -44,6 +44,8 @@ export default function AIAssistantPage() {
 
     // Prepare context for the AI
     const myOpenTasks = tasks.filter(t => t.assignedTo === userProfile?.uid && t.status !== 'Done');
+    const myProjectIds = new Set(myOpenTasks.map(t => t.projectId).filter(Boolean));
+    const myProjects = projects.filter(p => myProjectIds.has(p.id));
     
     let context = `The current user is ${userProfile?.displayName}.\n\n`;
 
@@ -54,6 +56,15 @@ export default function AIAssistantPage() {
       });
     } else {
       context += "No open tasks.\n";
+    }
+    
+    context += "\nProjects with tasks assigned to the user:\n";
+    if (myProjects.length > 0) {
+      myProjects.forEach(project => {
+        context += `- Project: "${project.name}", Status: ${project.status}\n`;
+      });
+    } else {
+      context += "No projects with tasks assigned to the user.\n";
     }
 
     context += "\nTeam Members:\n";

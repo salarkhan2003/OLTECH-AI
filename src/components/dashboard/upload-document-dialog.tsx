@@ -49,9 +49,12 @@ export function UploadDocumentDialog({ open, onOpenChange }: { open: boolean; on
 
   const selectedProjectId = form.watch('projectId');
   
+  // Decoupled task filtering: if a project is selected, filter tasks. Otherwise, show all tasks.
   const filteredTasks = React.useMemo(() => {
-    if (!selectedProjectId) return [];
-    return tasks.filter(task => task.projectId === selectedProjectId);
+    if (selectedProjectId) {
+        return tasks.filter(task => task.projectId === selectedProjectId);
+    }
+    return tasks; // Show all tasks if no project is selected
   }, [selectedProjectId, tasks]);
 
   async function onSubmit(data: UploadFormValues) {
@@ -100,6 +103,7 @@ export function UploadDocumentDialog({ open, onOpenChange }: { open: boolean; on
     }
   }, [open, form]);
 
+  // Reset task selection if project changes
   React.useEffect(() => {
     form.setValue('taskId', '');
   }, [selectedProjectId, form]);
@@ -171,18 +175,18 @@ export function UploadDocumentDialog({ open, onOpenChange }: { open: boolean; on
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Link to Task (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedProjectId || isLoading}>
+                    <Select onValueChange={field.onChange} value={field.value || ''} disabled={isLoading}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a task" />
+                          <SelectValue placeholder={selectedProjectId ? "Select a task" : "Select project first"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {filteredTasks.map(task => (
+                        {filteredTasks.length > 0 ? filteredTasks.map(task => (
                           <SelectItem key={task.id} value={task.id}>
                             {task.title}
                           </SelectItem>
-                        ))}
+                        )) : <div className="p-2 text-sm text-muted-foreground">No tasks for this project.</div>}
                       </SelectContent>
                     </Select>
                   </FormItem>

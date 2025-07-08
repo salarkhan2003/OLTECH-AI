@@ -60,7 +60,7 @@ export function UserProfileForm({ userProfile }: { userProfile: UserProfile }) {
         await updateProfile(auth.currentUser, { displayName: data.displayName });
       }
 
-      await updateUserProfile(userProfile.uid, data);
+      await updateUserProfile(userProfile, data);
 
       toast({
         title: 'Profile Updated',

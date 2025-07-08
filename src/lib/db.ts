@@ -12,7 +12,7 @@ import {
   deleteDoc,
 } from 'firebase/firestore';
 import { db, storage } from './firebase';
-import type { UserProfile, Group, Task, Project, Document } from './types';
+import type { UserProfile, Group, Task, Project, Document, GroupMember } from './types';
 import { customAlphabet } from 'nanoid';
 import type { User } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, uploadBytesResumable } from 'firebase/storage';
@@ -42,9 +42,30 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
   return null;
 };
 
-export const updateUserProfile = async (uid: string, data: Partial<UserProfile>) => {
-    const userProfileRef = doc(db, 'users', uid);
-    await updateDoc(userProfileRef, data);
+export const updateUserProfile = async (userProfile: UserProfile, data: Partial<UserProfile>) => {
+    const batch = writeBatch(db);
+
+    // 1. Update the main user profile document
+    const userRef = doc(db, 'users', userProfile.uid);
+    batch.update(userRef, data);
+
+    // 2. If the user is in a group, update their denormalized data in the members subcollection
+    if (userProfile.groupId) {
+        const memberRef = doc(db, 'groups', userProfile.groupId, 'members', userProfile.uid);
+        
+        // Create a specific object for the member data to avoid writing fields that don't exist on GroupMember
+        const memberData: Partial<GroupMember> = {};
+        if (data.displayName !== undefined) memberData.displayName = data.displayName;
+        if (data.title !== undefined) memberData.title = data.title;
+        if (data.department !== undefined) memberData.department = data.department;
+
+        // Only add the update to the batch if there are fields to update
+        if (Object.keys(memberData).length > 0) {
+            batch.update(memberRef, memberData);
+        }
+    }
+
+    await batch.commit();
 };
 
 
@@ -73,6 +94,8 @@ export const createGroup = async (groupName: string, user: UserProfile): Promise
     displayName: user.displayName,
     photoURL: user.photoURL,
     email: user.email,
+    title: user.title || '',
+    department: user.department || '',
   });
 
   const userRef = doc(db, 'users', user.uid);
@@ -104,6 +127,8 @@ export const joinGroup = async (joinCode: string, user: UserProfile): Promise<Gr
     displayName: user.displayName,
     photoURL: user.photoURL,
     email: user.email,
+    title: user.title || '',
+    department: user.department || '',
   });
 
   const userRef = doc(db, 'users', user.uid);

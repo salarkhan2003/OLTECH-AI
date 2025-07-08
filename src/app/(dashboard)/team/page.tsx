@@ -124,8 +124,9 @@ export default function TeamPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[40%]">Member</TableHead>
+                <TableHead className="w-[35%]">Member</TableHead>
                 <TableHead>Title</TableHead>
+                <TableHead>Department</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Joined</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -153,6 +154,9 @@ export default function TeamPage() {
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {member.title || 'Not set'}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {member.department || 'Not set'}
                     </TableCell>
                     <TableCell>
                       <Badge variant={roleVariant[member.role] || 'outline'} className="capitalize">{member.role}</Badge>

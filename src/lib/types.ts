@@ -33,6 +33,7 @@ export type GroupMember = {
   photoURL?: string;
   email?: string;
   title?: string;
+  department?: string;
 };
 
 export type Project = {

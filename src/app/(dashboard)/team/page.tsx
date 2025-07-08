@@ -50,8 +50,11 @@ export default function TeamPage() {
   const [isChangeRoleOpen, setIsChangeRoleOpen] = React.useState(false);
   const [isInviteOpen, setIsInviteOpen] = React.useState(false);
   
-  const currentUserMemberInfo = members.find(m => m.uid === userProfile?.uid);
-  const isCurrentUserAdmin = currentUserMemberInfo?.role === 'admin';
+  const isCurrentUserAdmin = React.useMemo(() => {
+    if (!userProfile || !members) return false;
+    const currentUserMemberInfo = members.find(m => m.uid === userProfile.uid);
+    return currentUserMemberInfo?.role === 'admin';
+  }, [userProfile, members]);
 
   const handleRemoveMember = async () => {
     if (!memberToRemove || !group) return;

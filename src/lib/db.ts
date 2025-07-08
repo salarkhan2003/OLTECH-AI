@@ -9,11 +9,13 @@ import {
   where,
   getDocs,
   updateDoc,
+  deleteDoc,
 } from 'firebase/firestore';
-import { db } from './firebase';
-import type { UserProfile, Group, Task } from './types';
+import { db, storage } from './firebase';
+import type { UserProfile, Group, Task, Project, Document } from './types';
 import { customAlphabet } from 'nanoid';
 import type { User } from 'firebase/auth';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
 const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 6);
 
@@ -111,6 +113,17 @@ export const joinGroup = async (joinCode: string, user: UserProfile): Promise<Gr
   return group;
 };
 
+// Project Functions
+export const createProject = async (groupId: string, projectData: Omit<Project, 'id' | 'createdAt'>) => {
+    const projectId = doc(collection(db, 'groups', groupId, 'projects')).id;
+    const projectRef = doc(db, 'groups', groupId, 'projects', projectId);
+    await setDoc(projectRef, {
+        ...projectData,
+        id: projectId,
+        createdAt: serverTimestamp(),
+    });
+};
+
 // Task Functions
 export const createTask = async (groupId: string, taskData: Omit<Task, 'id' | 'createdAt' | 'createdBy'>) => {
     const taskId = doc(collection(db, 'groups', groupId, 'tasks')).id;
@@ -125,4 +138,40 @@ export const createTask = async (groupId: string, taskData: Omit<Task, 'id' | 'c
 export const updateTask = async (groupId: string, taskId: string, data: Partial<Task>) => {
     const taskRef = doc(db, 'groups', groupId, 'tasks', taskId);
     await updateDoc(taskRef, data);
+};
+
+// Document Functions
+export const uploadDocument = async (groupId: string, file: File, user: UserProfile, onProgress: (progress: number) => void) => {
+    const docId = doc(collection(db, 'groups', groupId, 'documents')).id;
+    const storagePath = `groups/${groupId}/documents/${docId}/${file.name}`;
+    const storageRef = ref(storage, storagePath);
+
+    const uploadTask = await uploadBytes(storageRef, file);
+    const url = await getDownloadURL(uploadTask.ref);
+
+    const docRef = doc(db, 'groups', groupId, 'documents', docId);
+
+    const newDocument: Document = {
+        id: docId,
+        name: file.name,
+        url,
+        path: storagePath,
+        fileType: file.type || 'unknown',
+        size: file.size,
+        uploadedAt: serverTimestamp(),
+        uploadedBy: user.uid,
+        uploaderName: user.displayName,
+        uploaderPhotoURL: user.photoURL,
+    };
+
+    await setDoc(docRef, newDocument);
+    return newDocument;
+};
+
+export const deleteDocument = async (groupId: string, document: Document) => {
+    const storageRef = ref(storage, document.path);
+    await deleteObject(storageRef);
+
+    const docRef = doc(db, 'groups', groupId, 'documents', document.id);
+    await deleteDoc(docRef);
 };

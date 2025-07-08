@@ -35,6 +35,16 @@ export type GroupMember = {
   title?: string;
 };
 
+export type Project = {
+  id: string;
+  name: string;
+  description?: string;
+  status: 'On Track' | 'At Risk' | 'Off Track' | 'Completed';
+  dueDate?: Timestamp | null;
+  createdAt: Timestamp;
+  createdBy: string; // UID
+};
+
 export type Task = {
   id: string;
   title: string;
@@ -48,4 +58,17 @@ export type Task = {
   // Denormalized assignee data
   assigneeName?: string;
   assigneePhotoURL?: string;
+};
+
+export type Document = {
+  id: string; // Corresponds to the document ID in Firestore
+  name: string;
+  url: string;
+  path: string; // The full path in Firebase Storage
+  fileType: string;
+  size: number; // in bytes
+  uploadedAt: Timestamp;
+  uploadedBy: string; // UID of uploader
+  uploaderName?: string;
+  uploaderPhotoURL?: string;
 };

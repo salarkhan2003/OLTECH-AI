@@ -2,13 +2,15 @@
 
 import * as React from 'react';
 import { useGroup } from '@/components/group-provider';
+import { useAuth } from '@/components/auth-provider';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Folder, MoreHorizontal, Download, Trash2 } from "lucide-react";
+import { Folder, MoreHorizontal, Download, Trash2, Upload, Link as LinkIcon, Briefcase } from "lucide-react";
 import { format } from 'date-fns';
-import { UploadDocumentButton } from '@/components/dashboard/upload-document-button';
+import { UploadDocumentDialog } from '@/components/dashboard/upload-document-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +30,7 @@ import {
 import { deleteDocument } from '@/lib/db';
 import { useToast } from '@/hooks/use-toast';
 import type { Document } from '@/lib/types';
+import Link from 'next/link';
 
 function formatBytes(bytes: number, decimals = 2) {
   if (bytes === 0) return '0 Bytes';
@@ -39,11 +42,29 @@ function formatBytes(bytes: number, decimals = 2) {
 }
 
 export default function DocumentsPage() {
-  const { group, documents } = useGroup();
+  const { group, documents, tasks, projects } = useGroup();
+  const { userProfile } = useAuth();
   const { toast } = useToast();
+
   const [docToDelete, setDocToDelete] = React.useState<Document | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
-  
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState('all');
+
+  const myTaskIds = React.useMemo(() => new Set(
+    tasks.filter(t => t.assignedTo === userProfile?.uid).map(t => t.id)
+  ), [tasks, userProfile]);
+
+  const filteredDocuments = React.useMemo(() => {
+    if (activeTab === 'my_tasks') {
+      return documents.filter(doc => doc.taskId && myTaskIds.has(doc.taskId));
+    }
+    return documents;
+  }, [documents, activeTab, myTaskIds]);
+
+  const projectsMap = React.useMemo(() => new Map(projects.map(p => [p.id, p.name])), [projects]);
+  const tasksMap = React.useMemo(() => new Map(tasks.map(t => [t.id, t.title])), [tasks]);
+
   const handleDelete = async () => {
     if (!docToDelete || !group) return;
     
@@ -67,8 +88,13 @@ export default function DocumentsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Documents</h1>
           <p className="text-muted-foreground">Manage your project documents.</p>
         </div>
-        <UploadDocumentButton />
+        <Button onClick={() => setIsUploadDialogOpen(true)}>
+          <Upload className="mr-2 h-4 w-4" />
+          Upload Document
+        </Button>
       </div>
+      
+      <UploadDocumentDialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen} />
       
       <AlertDialog open={!!docToDelete} onOpenChange={(open) => !open && setDocToDelete(null)}>
         <AlertDialogContent>
@@ -87,16 +113,28 @@ export default function DocumentsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+        <TabsList>
+            <TabsTrigger value="all">All Documents</TabsTrigger>
+            <TabsTrigger value="my_tasks">Linked to My Tasks</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
        <Card>
         <CardContent className="pt-6">
-          {documents.length === 0 ? (
+          {filteredDocuments.length === 0 ? (
             <div className="flex flex-col items-center justify-center text-center h-96 bg-secondary/30 rounded-lg">
                 <Folder className="h-16 w-16 text-muted-foreground/50 mb-4" />
-                <h3 className="font-semibold text-xl">No Documents Uploaded</h3>
-                <p className="text-sm text-muted-foreground mt-2">Upload your first document to see it here.</p>
+                <h3 className="font-semibold text-xl">No Documents Found</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {activeTab === 'all' ? 'Upload your first document to see it here.' : "No documents are linked to your tasks."}
+                </p>
                  <div className="mt-4">
-                   <UploadDocumentButton />
+                   <Button onClick={() => setIsUploadDialogOpen(true)}>
+                     <Upload className="mr-2 h-4 w-4" />
+                     Upload Document
+                   </Button>
                  </div>
             </div>
           ) : (
@@ -104,6 +142,8 @@ export default function DocumentsPage() {
                 <TableHeader>
                     <TableRow>
                         <TableHead>Name</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Linked To</TableHead>
                         <TableHead>Uploaded by</TableHead>
                         <TableHead>Size</TableHead>
                         <TableHead>Uploaded At</TableHead>
@@ -111,9 +151,23 @@ export default function DocumentsPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {documents.map((doc) => (
+                    {filteredDocuments.map((doc) => (
                         <TableRow key={doc.id}>
                             <TableCell className="font-medium">{doc.name}</TableCell>
+                            <TableCell className="text-muted-foreground max-w-xs truncate" title={doc.description}>
+                              {doc.description || '-'}
+                            </TableCell>
+                            <TableCell>
+                              {doc.projectId || doc.taskId ? (
+                                <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                                  {doc.projectId && <Briefcase className="h-4 w-4" />}
+                                  {doc.taskId && !doc.projectId && <LinkIcon className="h-4 w-4" />}
+                                  <span className="truncate">{projectsMap.get(doc.projectId!) || tasksMap.get(doc.taskId!)}</span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
                             <TableCell>
                                 <div className="flex items-center gap-2">
                                     <Avatar className="h-6 w-6">

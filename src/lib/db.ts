@@ -15,7 +15,7 @@ import { db, storage } from './firebase';
 import type { UserProfile, Group, Task, Project, Document } from './types';
 import { customAlphabet } from 'nanoid';
 import type { User } from 'firebase/auth';
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, uploadBytesResumable } from 'firebase/storage';
 
 const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 6);
 
@@ -125,7 +125,7 @@ export const createProject = async (groupId: string, projectData: Omit<Project, 
 };
 
 // Task Functions
-export const createTask = async (groupId: string, taskData: Omit<Task, 'id' | 'createdAt' | 'createdBy'>) => {
+export const createTask = async (groupId: string, taskData: Omit<Task, 'id' | 'createdAt'>) => {
     const taskId = doc(collection(db, 'groups', groupId, 'tasks')).id;
     const taskRef = doc(db, 'groups', groupId, 'tasks', taskId);
     await setDoc(taskRef, {
@@ -141,32 +141,56 @@ export const updateTask = async (groupId: string, taskId: string, data: Partial<
 };
 
 // Document Functions
-export const uploadDocument = async (groupId: string, file: File, user: UserProfile, onProgress: (progress: number) => void) => {
+export const uploadDocument = (
+    groupId: string,
+    user: UserProfile,
+    data: { file: File, description?: string, projectId?: string, taskId?: string },
+    onProgress: (progress: number) => void
+): Promise<Document> => {
+  return new Promise((resolve, reject) => {
+    const { file, description, projectId, taskId } = data;
     const docId = doc(collection(db, 'groups', groupId, 'documents')).id;
     const storagePath = `groups/${groupId}/documents/${docId}/${file.name}`;
     const storageRef = ref(storage, storagePath);
+    
+    const uploadTask = uploadBytesResumable(storageRef, file);
 
-    const uploadTask = await uploadBytes(storageRef, file);
-    const url = await getDownloadURL(uploadTask.ref);
+    uploadTask.on('state_changed',
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        onProgress(progress);
+      },
+      (error) => {
+        console.error("Upload failed:", error);
+        reject(error);
+      },
+      async () => {
+        const url = await getDownloadURL(uploadTask.snapshot.ref);
+        const docRef = doc(db, 'groups', groupId, 'documents', docId);
 
-    const docRef = doc(db, 'groups', groupId, 'documents', docId);
+        const newDocument: Document = {
+            id: docId,
+            name: file.name,
+            url,
+            path: storagePath,
+            fileType: file.type || 'unknown',
+            size: file.size,
+            uploadedAt: serverTimestamp(),
+            uploadedBy: user.uid,
+            uploaderName: user.displayName,
+            uploaderPhotoURL: user.photoURL,
+            description: description || '',
+            projectId: projectId || null,
+            taskId: taskId || null,
+        };
 
-    const newDocument: Document = {
-        id: docId,
-        name: file.name,
-        url,
-        path: storagePath,
-        fileType: file.type || 'unknown',
-        size: file.size,
-        uploadedAt: serverTimestamp(),
-        uploadedBy: user.uid,
-        uploaderName: user.displayName,
-        uploaderPhotoURL: user.photoURL,
-    };
-
-    await setDoc(docRef, newDocument);
-    return newDocument;
+        await setDoc(docRef, newDocument);
+        resolve(newDocument);
+      }
+    );
+  });
 };
+
 
 export const deleteDocument = async (groupId: string, document: Document) => {
     const storageRef = ref(storage, document.path);

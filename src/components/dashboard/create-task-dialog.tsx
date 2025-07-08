@@ -44,6 +44,7 @@ import { Timestamp } from 'firebase/firestore';
 const taskSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
   description: z.string().optional(),
+  projectId: z.string().optional(),
   assignedTo: z.string().min(1, 'Please assign this task to a member.'),
   priority: z.enum(['Low', 'Medium', 'High']),
   deadline: z.date().optional(),
@@ -52,7 +53,7 @@ const taskSchema = z.object({
 type TaskFormValues = z.infer<typeof taskSchema>;
 
 export function CreateTaskDialog({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
-  const { group, members } = useGroup();
+  const { group, members, projects } = useGroup();
   const { userProfile } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
@@ -62,6 +63,7 @@ export function CreateTaskDialog({ open, onOpenChange }: { open: boolean, onOpen
     defaultValues: {
       title: '',
       description: '',
+      projectId: '',
       assignedTo: '',
       priority: 'Medium',
       deadline: undefined,
@@ -78,6 +80,7 @@ export function CreateTaskDialog({ open, onOpenChange }: { open: boolean, onOpen
       await createTask(group.id, {
         title: data.title,
         description: data.description,
+        projectId: data.projectId,
         assignedTo: data.assignedTo,
         assigneeName: assignee?.displayName,
         assigneePhotoURL: assignee?.photoURL,
@@ -113,7 +116,7 @@ export function CreateTaskDialog({ open, onOpenChange }: { open: boolean, onOpen
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Create New Task</DialogTitle>
           <DialogDescription>
@@ -144,6 +147,30 @@ export function CreateTaskDialog({ open, onOpenChange }: { open: boolean, onOpen
                   <FormControl>
                     <Textarea placeholder="Add more details about the task..." {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="projectId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Project (Optional)</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Link to a project" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {projects.map(project => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

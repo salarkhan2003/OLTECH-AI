@@ -55,6 +55,7 @@ export type Task = {
   assignedTo: string; // UID of the assigned user
   createdBy: string; // UID of the user who created the task
   createdAt: Timestamp;
+  projectId?: string | null;
   // Denormalized assignee data
   assigneeName?: string;
   assigneePhotoURL?: string;
@@ -71,4 +72,7 @@ export type Document = {
   uploadedBy: string; // UID of uploader
   uploaderName?: string;
   uploaderPhotoURL?: string;
+  description?: string;
+  projectId?: string | null;
+  taskId?: string | null;
 };

@@ -24,7 +24,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { createUserProfile } from '@/lib/db';
+import { createUserProfile, joinGroup } from '@/lib/db';
 
 const formSchema = z.object({
   displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -60,10 +60,23 @@ export default function SignupPage() {
       });
 
       // After creating the user in Auth, create their profile in Firestore
-      await createUserProfile(userCredential.user);
+      const newUserProfile = await createUserProfile(userCredential.user);
       
-      // The DashboardLayout will handle redirecting to the join-or-create page
-      // if the user doesn't have a group.
+      // Check if there is a pending join code in local storage
+      const pendingJoinCode = localStorage.getItem('pendingJoinCode');
+      if (pendingJoinCode) {
+        try {
+          await joinGroup(pendingJoinCode, newUserProfile);
+          localStorage.removeItem('pendingJoinCode');
+        } catch (joinError: any) {
+           toast({
+            variant: 'destructive',
+            title: 'Could not join group',
+            description: joinError.message,
+           });
+        }
+      }
+
       router.push('/dashboard');
 
     } catch (error: any) {
@@ -73,7 +86,7 @@ export default function SignupPage() {
         title: 'Sign Up Failed',
         description:
           error.code === 'auth/email-already-in-use'
-            ? 'This email is already in use.'
+            ? 'This email is already in use. Please sign in instead.'
             : 'An unexpected error occurred.',
       });
     } finally {

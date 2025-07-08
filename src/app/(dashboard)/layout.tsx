@@ -47,6 +47,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import { useToast } from '@/hooks/use-toast';
+import { joinGroup } from '@/lib/db';
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
@@ -147,6 +149,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, userProfile, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const { toast } = useToast();
+  const [isJoining, setIsJoining] = React.useState(false);
 
   React.useEffect(() => {
     if (!loading && !user) {
@@ -155,12 +159,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [user, loading, router]);
   
   React.useEffect(() => {
-    if (!loading && user && !userProfile?.groupId && !pathname.startsWith('/dashboard/join-or-create-group')) {
-        router.push('/dashboard/join-or-create-group');
-    }
-  }, [user, userProfile, loading, router, pathname]);
+    const handlePendingJoin = async () => {
+        if (isJoining || loading || !user || !userProfile) return;
+
+        const pendingJoinCode = localStorage.getItem('pendingJoinCode');
+
+        if (pendingJoinCode && !userProfile.groupId) {
+            setIsJoining(true);
+            try {
+                await joinGroup(pendingJoinCode, userProfile);
+                toast({ title: 'Successfully joined group!' });
+            } catch (error: any) {
+                toast({ variant: 'destructive', title: 'Failed to join group', description: error.message });
+            } finally {
+                localStorage.removeItem('pendingJoinCode');
+                // The GroupProvider will automatically update, no need to reload.
+                setIsJoining(false); 
+            }
+        } else if (pendingJoinCode && userProfile.groupId) {
+            // User is already in a group, just remove the code.
+            localStorage.removeItem('pendingJoinCode');
+        } else if (!userProfile.groupId && !pathname.startsWith('/dashboard/join-or-create-group')) {
+            router.push('/dashboard/join-or-create-group');
+        }
+    };
+    handlePendingJoin();
+  }, [user, userProfile, loading, router, pathname, toast, isJoining]);
   
-  if (loading || !user) {
+  if (loading || !user || isJoining) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

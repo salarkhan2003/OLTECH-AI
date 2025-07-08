@@ -13,7 +13,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { useGroup } from '../group-provider';
 import { useToast } from '@/hooks/use-toast';
-import { Copy } from 'lucide-react';
+import { Copy, Link2 } from 'lucide-react';
 
 interface InviteMemberDialogProps {
   open: boolean;
@@ -23,13 +23,22 @@ interface InviteMemberDialogProps {
 export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogProps) {
   const { group } = useGroup();
   const { toast } = useToast();
+  const [inviteLink, setInviteLink] = React.useState('');
 
-  const copyJoinCode = () => {
-    if (!group?.joinCode) return;
-    navigator.clipboard.writeText(group.joinCode);
+  React.useEffect(() => {
+    if (group?.joinCode) {
+        // window.location.origin is only available on the client
+        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+        setInviteLink(`${origin}/join?code=${group.joinCode}`);
+    }
+  }, [group?.joinCode]);
+
+  const copyInviteLink = () => {
+    if (!inviteLink) return;
+    navigator.clipboard.writeText(inviteLink);
     toast({
       title: "Copied to clipboard!",
-      description: `Join code ${group.joinCode} is ready to be shared.`,
+      description: `Your invite link is ready to be shared.`,
     });
   }
 
@@ -39,26 +48,27 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
         <DialogHeader>
           <DialogTitle>Invite a Team Member</DialogTitle>
           <DialogDescription>
-            Share this join code with the person you want to invite. They can use it to join your group.
+            Share this link with people you want to invite. They will automatically join your group after signing up or logging in.
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-center space-x-2 pt-4">
             <div className="grid flex-1 gap-2">
-                <Input
-                    id="link"
-                    defaultValue={group?.joinCode}
-                    readOnly
-                    className="font-mono text-center text-lg h-12"
-                />
+                <div className="relative">
+                    <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        id="link"
+                        value={inviteLink}
+                        readOnly
+                        className="pl-9"
+                    />
+                </div>
             </div>
-            <Button type="submit" size="icon" className="h-12 w-12" onClick={copyJoinCode}>
-                <Copy className="h-6 w-6" />
+            <Button type="submit" size="icon" onClick={copyInviteLink} disabled={!inviteLink}>
+                <Copy className="h-4 w-4" />
             </Button>
         </div>
         <DialogFooter className="sm:justify-start">
-            <p className="text-xs text-muted-foreground">
-                Sending email invites directly is coming soon.
-            </p>
+             <p className="text-xs text-muted-foreground">This link does not expire, but you can generate a new one from Settings.</p>
         </DialogFooter>
       </DialogContent>
     </Dialog>

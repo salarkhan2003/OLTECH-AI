@@ -51,6 +51,7 @@ export default function TeamPage() {
   const [isInviteOpen, setIsInviteOpen] = React.useState(false);
   
   const currentUserMemberInfo = members.find(m => m.uid === userProfile?.uid);
+  const isCurrentUserAdmin = currentUserMemberInfo?.role === 'admin';
 
   const handleRemoveMember = async () => {
     if (!memberToRemove || !group) return;
@@ -129,7 +130,6 @@ export default function TeamPage() {
             </TableHeader>
             <TableBody>
               {members.map((member) => {
-                const isCurrentUserAdmin = currentUserMemberInfo?.role === 'admin';
                 const isSelf = member.uid === userProfile?.uid;
                 const admins = members.filter(m => m.role === 'admin');
                 const isLastAdmin = admins.length === 1 && admins[0].uid === member.uid;

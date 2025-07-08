@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import { Loader2 } from 'lucide-react';
 
 const createGroupSchema = z.object({
@@ -89,8 +88,8 @@ export default function JoinOrCreateGroupPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-2xl space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Join OLTECH Group</h1>
-          <p className="text-muted-foreground">Create a new group or join an existing one with a code.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Welcome to OLTECH AI</h1>
+          <p className="text-muted-foreground">Create a new workspace or join your team with an invite code.</p>
         </div>
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
           <Card>

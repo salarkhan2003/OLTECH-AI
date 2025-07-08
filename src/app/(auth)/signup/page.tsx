@@ -24,7 +24,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { createUserProfile, joinGroup } from '@/lib/db';
+import { createUserProfile } from '@/lib/db';
 
 const formSchema = z.object({
   displayName: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -60,20 +60,12 @@ export default function SignupPage() {
       });
 
       // After creating the user in Auth, create their profile in Firestore
-      const newUserProfile = await createUserProfile(userCredential.user);
+      await createUserProfile(userCredential.user);
+      
+      // The DashboardLayout will handle redirecting to the join-or-create page
+      // if the user doesn't have a group.
+      router.push('/dashboard');
 
-      // Check for a pending join code from an invite link
-      const pendingJoinCode = localStorage.getItem('pendingJoinCode');
-
-      if (pendingJoinCode && newUserProfile) {
-        await joinGroup(pendingJoinCode, newUserProfile);
-        localStorage.removeItem('pendingJoinCode');
-        // The AuthProvider will see the user has a groupId and route to dashboard.
-        router.push('/dashboard');
-      } else {
-        // Original behavior: if no invite, send to the join/create page.
-        router.push('/dashboard/join-or-create-group');
-      }
     } catch (error: any) {
       console.error(error);
       toast({

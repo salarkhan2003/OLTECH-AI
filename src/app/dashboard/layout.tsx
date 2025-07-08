@@ -32,6 +32,7 @@ import {
   Loader2,
   Briefcase,
   CheckSquare,
+  Info,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/components/auth-provider';
@@ -121,6 +122,12 @@ function MainSidebar() {
               <Link href="/dashboard/settings">
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/about">
+                <Info className="mr-2 h-4 w-4" />
+                <span>About</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

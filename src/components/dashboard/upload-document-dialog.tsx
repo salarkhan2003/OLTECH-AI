@@ -84,12 +84,12 @@ export function UploadDocumentDialog({ open, onOpenChange }: { open: boolean; on
       });
       form.reset();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Upload error:", error);
       toast({
         variant: 'destructive',
         title: "Upload Failed",
-        description: "Could not upload the document. Please try again.",
+        description: error.message || "Could not upload the document. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -195,7 +195,8 @@ export function UploadDocumentDialog({ open, onOpenChange }: { open: boolean; on
             </div>
             {isLoading && <Progress value={uploadProgress} className="w-full" />}
             <Button type="submit" disabled={isLoading} className="w-full">
-              {isLoading ? 'Uploading...' : 'Upload Document'}
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLoading ? `Uploading... ${Math.round(uploadProgress)}%` : 'Upload Document'}
             </Button>
           </form>
         </Form>

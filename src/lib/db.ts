@@ -12,7 +12,7 @@ import {
   deleteDoc,
 } from 'firebase/firestore';
 import { db, storage, auth } from './firebase';
-import type { UserProfile, Group, Task, Project, Document, GroupMember } from './types';
+import type { UserProfile, Group, Task, Project, Document } from './types';
 import { customAlphabet } from 'nanoid';
 import type { User } from 'firebase/auth';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
@@ -187,13 +187,12 @@ export const updateTask = async (groupId: string, taskId: string, data: Partial<
 };
 
 // Document Functions
-export const uploadDocument = (
+export const uploadDocument = async (
     groupId: string,
     user: UserProfile,
     data: { file: File, description?: string, projectId?: string, taskId?: string },
     onProgress: (progress: number) => void
 ): Promise<Document> => {
-  return new Promise((resolve, reject) => {
     const { file, description, projectId, taskId } = data;
     const docId = doc(collection(db, 'groups', groupId, 'documents')).id;
     const storagePath = `groups/${groupId}/documents/${docId}/${file.name}`;
@@ -201,45 +200,52 @@ export const uploadDocument = (
     
     const uploadTask = uploadBytesResumable(storageRef, file);
 
-    uploadTask.on('state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        onProgress(progress);
-      },
-      (error) => {
-        console.error("Upload failed:", error);
-        reject(error);
-      },
-      async () => {
-        try {
-            const url = await getDownloadURL(uploadTask.snapshot.ref);
-            const docRef = doc(db, 'groups', groupId, 'documents', docId);
+    // Wrap the upload process in a promise to handle completion and errors with async/await
+    await new Promise<void>((resolve, reject) => {
+        uploadTask.on('state_changed',
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                onProgress(progress);
+            },
+            (error) => {
+                console.error("Upload failed in transit:", error);
+                reject(error); // Reject the promise on a storage error
+            },
+            () => {
+                resolve(); // Resolve the promise when storage upload is complete
+            }
+        );
+    });
 
-            const newDocument: Document = {
-                id: docId,
-                name: file.name,
-                url,
-                path: storagePath,
-                fileType: file.type || 'unknown',
-                size: file.size,
-                uploadedAt: serverTimestamp(),
-                uploadedBy: user.uid,
-                uploaderName: user.displayName,
-                uploaderPhotoURL: user.photoURL,
-                description: description || '',
-                projectId: projectId || null,
-                taskId: taskId || null,
-            };
+    // This code runs only after the file is successfully in storage
+    try {
+        const url = await getDownloadURL(uploadTask.snapshot.ref);
+        const docRef = doc(db, 'groups', groupId, 'documents', docId);
 
-            await setDoc(docRef, newDocument);
-            resolve(newDocument);
-        } catch (error) {
-            console.error("Error in upload completion callback:", error);
-            reject(error);
-        }
-      }
-    );
-  });
+        const newDocument: Document = {
+            id: docId,
+            name: file.name,
+            url,
+            path: storagePath,
+            fileType: file.type || 'unknown',
+            size: file.size,
+            uploadedAt: serverTimestamp(),
+            uploadedBy: user.uid,
+            uploaderName: user.displayName || 'Unknown User',
+            uploaderPhotoURL: user.photoURL || '',
+            description: description || '',
+            projectId: projectId || null,
+            taskId: taskId || null,
+        };
+
+        await setDoc(docRef, newDocument);
+        return newDocument;
+    } catch (error) {
+        console.error("Error saving document metadata to Firestore:", error);
+        // If writing to Firestore fails, delete the orphaned file from Storage
+        await deleteObject(storageRef).catch(delErr => console.error("Orphaned file cleanup failed:", delErr));
+        throw error; // Re-throw the error to be caught by the calling component
+    }
 };
 
 
